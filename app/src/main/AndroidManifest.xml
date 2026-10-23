@@ -1,25 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="Smart Pantry"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SmartPantryApp"
-        tools:targetApi="31">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+
+        <!-- Screen 1: Main Pantry Dashboard (Launch Activity) -->
         <activity
-            android:name=".MainActivity"
+            android:name=".PantryListActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Screen 2: Add / Edit Ingredient Form -->
+        <activity
+            android:name=".AddEditIngredientActivity"
+            android:exported="false"
+            android:parentActivityName=".PantryListActivity" />
+
+        <!-- Screen 3: Suggested Recipes List -->
+        <activity
+            android:name=".SuggestedRecipesActivity"
+            android:exported="false"
+            android:parentActivityName=".PantryListActivity" />
+
+        <!-- Screen 4: Recipe Details -->
+        <activity
+            android:name=".RecipeDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".SuggestedRecipesActivity" />
+
+        <!-- Screen 5: Settings Preferences -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:parentActivityName=".PantryListActivity" />
+
     </application>
 
 </manifest>
