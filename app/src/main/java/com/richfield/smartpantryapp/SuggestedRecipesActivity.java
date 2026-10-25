@@ -2,6 +2,7 @@ package com.richfield.smartpantryapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
@@ -23,9 +24,8 @@ import java.util.List;
 
 /**
  * Screen 3: Suggested Recipes Activity.
- * Queries current pantry inventory from SQLite, runs strict recipe matching,
- * and displays qualifying recipes in a RecyclerView.
- * Shows an informative empty-state message if zero recipes match.
+ * Displays recipes matching current pantry inventory or the full recipe collection
+ * via a clean Toolbar Options Menu toggle.
  */
 public class SuggestedRecipesActivity extends AppCompatActivity implements RecipeAdapter.OnRecipeClickListener {
 
@@ -34,7 +34,8 @@ public class SuggestedRecipesActivity extends AppCompatActivity implements Recip
     private TextView textNoRecipes;
     private RecipeAdapter recipeAdapter;
     private DatabaseHelper databaseHelper;
-    private List<Recipe> matchingRecipes;
+    private List<Recipe> displayedRecipes;
+    private boolean showAllRecipes = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +52,7 @@ public class SuggestedRecipesActivity extends AppCompatActivity implements Recip
     @Override
     protected void onResume() {
         super.onResume();
-        loadMatchingRecipes();
+        loadRecipes();
     }
 
     private void initViews() {
@@ -63,27 +64,41 @@ public class SuggestedRecipesActivity extends AppCompatActivity implements Recip
     private void setupToolbar() {
         setSupportActionBar(toolbarSuggested);
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Suggested Recipes");
+            getSupportActionBar().setTitle(showAllRecipes ? "All Recipes" : "Suggested Recipes");
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
     }
 
     private void setupRecyclerView() {
-        matchingRecipes = new ArrayList<>();
-        recipeAdapter = new RecipeAdapter(matchingRecipes, this);
+        displayedRecipes = new ArrayList<>();
+        recipeAdapter = new RecipeAdapter(displayedRecipes, this);
         recyclerViewSuggested.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewSuggested.setAdapter(recipeAdapter);
     }
 
-    private void loadMatchingRecipes() {
-        List<PantryItem> pantryItems = databaseHelper.getAllPantryItems();
-        List<Recipe> allRecipes = databaseHelper.getAllRecipes();
+    private void loadRecipes() {
+        if (showAllRecipes) {
+            displayedRecipes = databaseHelper.getAllRecipes();
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle("All Recipes (" + displayedRecipes.size() + ")");
+            }
+        } else {
+            List<PantryItem> pantryItems = databaseHelper.getAllPantryItems();
+            List<Recipe> allRecipes = databaseHelper.getAllRecipes();
+            displayedRecipes = RecipeMatcher.getStrictMatchingRecipes(allRecipes, pantryItems);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle("Suggested Recipes");
+            }
+        }
 
-        // Execute strict-matching logic
-        matchingRecipes = RecipeMatcher.getStrictMatchingRecipes(allRecipes, pantryItems);
-        recipeAdapter.updateList(matchingRecipes);
+        recipeAdapter.updateList(displayedRecipes);
 
-        if (matchingRecipes.isEmpty()) {
+        if (displayedRecipes.isEmpty()) {
+            if (showAllRecipes) {
+                textNoRecipes.setText("No recipes found in database");
+            } else {
+                textNoRecipes.setText("No recipes match your pantry yet - add more ingredients");
+            }
             textNoRecipes.setVisibility(View.VISIBLE);
             recyclerViewSuggested.setVisibility(View.GONE);
         } else {
@@ -93,18 +108,34 @@ public class SuggestedRecipesActivity extends AppCompatActivity implements Recip
     }
 
     @Override
-    public void onRecipeClick(Recipe recipe) {
-        Intent intent = new Intent(SuggestedRecipesActivity.this, RecipeDetailActivity.class);
-        intent.putExtra("recipe_id", recipe.getId());
-        startActivity(intent);
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_suggested_recipes, menu);
+        MenuItem toggleItem = menu.findItem(R.id.action_toggle_all_recipes);
+        if (toggleItem != null) {
+            toggleItem.setTitle(showAllRecipes ? "Show Matched" : "Show All Recipes");
+        }
+        return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
+        int id = item.getItemId();
+        if (id == android.R.id.home) {
             finish();
+            return true;
+        } else if (id == R.id.action_toggle_all_recipes) {
+            showAllRecipes = !showAllRecipes;
+            invalidateOptionsMenu();
+            loadRecipes();
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onRecipeClick(Recipe recipe) {
+        Intent intent = new Intent(SuggestedRecipesActivity.this, RecipeDetailActivity.class);
+        intent.putExtra("recipe_id", recipe.getId());
+        startActivity(intent);
     }
 }
