@@ -114,6 +114,34 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/labelIngredientUnit" />
 
+        <!-- Category Selection -->
+        <TextView
+            android:id="@+id/labelIngredientCategory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="24dp"
+            android:text="Category *"
+            android:textColor="@android:color/black"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/spinnerIngredientUnit" />
+
+        <Spinner
+            android:id="@+id/spinnerIngredientCategory"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="24dp"
+            android:background="@android:drawable/btn_dropdown"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/labelIngredientCategory" />
+
         <TextView
             android:id="@+id/labelIngredientExpiry"
             android:layout_width="0dp"
@@ -127,7 +155,7 @@
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/spinnerIngredientUnit" />
+            app:layout_constraintTop_toBottomOf="@+id/spinnerIngredientCategory" />
 
         <EditText
             android:id="@+id/editIngredientExpiry"
