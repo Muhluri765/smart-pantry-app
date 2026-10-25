@@ -25,16 +25,18 @@ import java.util.Locale;
 /**
  * Screen 2: Add / Edit Ingredient Activity.
  * Captures user input with strict validation, handles date selection via DatePickerDialog,
- * and performs SQLite insert or update operations based on intent extras.
+ * manages unit and category dropdown selectors, and performs SQLite insert or update operations.
  */
 public class AddEditIngredientActivity extends AppCompatActivity {
 
     private static final String[] UNITS = {"unit", "g", "kg", "ml", "l", "slice", "clove", "pinch"};
+    private static final String[] CATEGORIES = {"Drinks", "Meats", "Dairy", "Produce", "Grains", "Pantry", "Other"};
 
     private Toolbar toolbarAddEdit;
     private EditText editIngredientName;
     private EditText editIngredientQuantity;
     private Spinner spinnerIngredientUnit;
+    private Spinner spinnerIngredientCategory;
     private EditText editIngredientExpiry;
     private Button btnSaveIngredient;
 
@@ -52,6 +54,7 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         initViews();
         setupToolbar();
         setupUnitSpinner();
+        setupCategorySpinner();
         setupDatePicker();
         checkIntentData();
         setupSaveButton();
@@ -62,6 +65,7 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         editIngredientName = findViewById(R.id.editIngredientName);
         editIngredientQuantity = findViewById(R.id.editIngredientQuantity);
         spinnerIngredientUnit = findViewById(R.id.spinnerIngredientUnit);
+        spinnerIngredientCategory = findViewById(R.id.spinnerIngredientCategory);
         editIngredientExpiry = findViewById(R.id.editIngredientExpiry);
         btnSaveIngredient = findViewById(R.id.btnSaveIngredient);
     }
@@ -81,6 +85,16 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerIngredientUnit.setAdapter(adapter);
+    }
+
+    private void setupCategorySpinner() {
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                CATEGORIES
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerIngredientCategory.setAdapter(adapter);
     }
 
     private void setupDatePicker() {
@@ -134,7 +148,8 @@ public class AddEditIngredientActivity extends AppCompatActivity {
                         editIngredientQuantity.setText(String.format(Locale.US, "%s", existingItem.getQuantity()));
                     }
 
-                    setSpinnerSelection(existingItem.getUnit());
+                    setSpinnerSelection(spinnerIngredientUnit, UNITS, existingItem.getUnit());
+                    setSpinnerSelection(spinnerIngredientCategory, CATEGORIES, existingItem.getCategory());
 
                     if (existingItem.getExpiryDate() != null) {
                         editIngredientExpiry.setText(existingItem.getExpiryDate());
@@ -144,11 +159,11 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         }
     }
 
-    private void setSpinnerSelection(String unit) {
-        if (unit == null) return;
-        for (int i = 0; i < UNITS.length; i++) {
-            if (UNITS[i].equalsIgnoreCase(unit.trim())) {
-                spinnerIngredientUnit.setSelection(i);
+    private void setSpinnerSelection(Spinner spinner, String[] array, String value) {
+        if (value == null) return;
+        for (int i = 0; i < array.length; i++) {
+            if (array[i].equalsIgnoreCase(value.trim())) {
+                spinner.setSelection(i);
                 break;
             }
         }
@@ -167,6 +182,7 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         String name = editIngredientName.getText().toString().trim();
         String quantityStr = editIngredientQuantity.getText().toString().trim();
         String unit = spinnerIngredientUnit.getSelectedItem().toString();
+        String category = spinnerIngredientCategory.getSelectedItem().toString();
         String expiry = editIngredientExpiry.getText().toString().trim();
 
         // Form Validation
@@ -198,10 +214,10 @@ public class AddEditIngredientActivity extends AppCompatActivity {
 
         // Database Persistence
         if (existingItemId == -1 || existingItem == null) {
-            PantryItem newItem = new PantryItem(name, quantity, unit, expiry);
+            PantryItem newItem = new PantryItem(name, quantity, unit, expiry, category);
             long insertedId = databaseHelper.insertPantryItem(newItem);
             if (insertedId != -1) {
-                Toast.makeText(this, name + " added to pantry", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, name + " (" + category + ") added", Toast.LENGTH_SHORT).show();
                 finish();
             } else {
                 Toast.makeText(this, "Failed to save ingredient", Toast.LENGTH_SHORT).show();
@@ -210,11 +226,12 @@ public class AddEditIngredientActivity extends AppCompatActivity {
             existingItem.setName(name);
             existingItem.setQuantity(quantity);
             existingItem.setUnit(unit);
+            existingItem.setCategory(category);
             existingItem.setExpiryDate(expiry);
 
             boolean updated = databaseHelper.updatePantryItem(existingItem);
             if (updated) {
-                Toast.makeText(this, name + " updated successfully", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, name + " (" + category + ") updated", Toast.LENGTH_SHORT).show();
                 finish();
             } else {
                 Toast.makeText(this, "Failed to update ingredient", Toast.LENGTH_SHORT).show();
