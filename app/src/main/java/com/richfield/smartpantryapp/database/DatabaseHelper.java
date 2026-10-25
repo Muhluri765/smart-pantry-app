@@ -15,13 +15,13 @@ import java.util.List;
 
 /**
  * SQLite database helper managing the local database "pantry_manager.db".
- * Handles full CRUD operations for pantry items, recipe data retrieval,
- * and automatic seeding of default recipes upon initial installation.
+ * Handles full CRUD operations for pantry items (including category support),
+ * recipe data retrieval, and automatic seeding of default recipes upon installation.
  */
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "pantry_manager.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     // Table names
     public static final String TABLE_PANTRY = "pantry_item";
@@ -34,6 +34,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_PANTRY_QUANTITY = "quantity";
     public static final String COLUMN_PANTRY_UNIT = "unit";
     public static final String COLUMN_PANTRY_EXPIRY = "expiry_date";
+    public static final String COLUMN_PANTRY_CATEGORY = "category";
 
     // Recipe columns
     public static final String COLUMN_RECIPE_ID = "id";
@@ -53,7 +54,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             + COLUMN_PANTRY_NAME + " TEXT NOT NULL, "
             + COLUMN_PANTRY_QUANTITY + " REAL NOT NULL, "
             + COLUMN_PANTRY_UNIT + " TEXT NOT NULL, "
-            + COLUMN_PANTRY_EXPIRY + " TEXT"
+            + COLUMN_PANTRY_EXPIRY + " TEXT, "
+            + COLUMN_PANTRY_CATEGORY + " TEXT DEFAULT 'Other'"
             + ");";
 
     private static final String CREATE_TABLE_RECIPE = "CREATE TABLE " + TABLE_RECIPE + " ("
@@ -85,10 +87,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_RECIPE_INGREDIENT);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_RECIPE);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_PANTRY);
-        onCreate(db);
+        if (oldVersion < 2) {
+            // Non-destructive migration: add category column without dropping user data
+            db.execSQL("ALTER TABLE " + TABLE_PANTRY + " ADD COLUMN " + COLUMN_PANTRY_CATEGORY + " TEXT DEFAULT 'Other';");
+        }
     }
 
     // ==========================================
@@ -102,6 +104,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_PANTRY_QUANTITY, item.getQuantity());
         values.put(COLUMN_PANTRY_UNIT, item.getUnit().trim());
         values.put(COLUMN_PANTRY_EXPIRY, item.getExpiryDate());
+        values.put(COLUMN_PANTRY_CATEGORY, (item.getCategory() != null && !item.getCategory().trim().isEmpty())
+                ? item.getCategory().trim() : "Other");
+
         long id = db.insert(TABLE_PANTRY, null, values);
         item.setId(id);
         return id;
@@ -115,12 +120,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         if (cursor != null && cursor.moveToFirst()) {
             do {
+                int catIndex = cursor.getColumnIndex(COLUMN_PANTRY_CATEGORY);
+                String category = (catIndex != -1 && !cursor.isNull(catIndex)) ? cursor.getString(catIndex) : "Other";
+
                 PantryItem item = new PantryItem(
                         cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_ID)),
                         cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_NAME)),
                         cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_QUANTITY)),
                         cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_UNIT)),
-                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_EXPIRY))
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_EXPIRY)),
+                        category
                 );
                 list.add(item);
             } while (cursor.moveToNext());
@@ -136,12 +145,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 new String[]{String.valueOf(id)}, null, null, null);
 
         if (cursor != null && cursor.moveToFirst()) {
+            int catIndex = cursor.getColumnIndex(COLUMN_PANTRY_CATEGORY);
+            String category = (catIndex != -1 && !cursor.isNull(catIndex)) ? cursor.getString(catIndex) : "Other";
+
             item = new PantryItem(
                     cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_ID)),
                     cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_NAME)),
                     cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_QUANTITY)),
                     cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_UNIT)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_EXPIRY))
+                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PANTRY_EXPIRY)),
+                    category
             );
             cursor.close();
         }
@@ -155,6 +168,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_PANTRY_QUANTITY, item.getQuantity());
         values.put(COLUMN_PANTRY_UNIT, item.getUnit().trim());
         values.put(COLUMN_PANTRY_EXPIRY, item.getExpiryDate());
+        values.put(COLUMN_PANTRY_CATEGORY, (item.getCategory() != null && !item.getCategory().trim().isEmpty())
+                ? item.getCategory().trim() : "Other");
 
         int rows = db.update(TABLE_PANTRY, values, COLUMN_PANTRY_ID + " = ?",
                 new String[]{String.valueOf(item.getId())});
